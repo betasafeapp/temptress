@@ -1,14 +1,42 @@
-#!/bin/python3
-from discord.ext import commands
 import discord
+from discord.ext import commands
 import database
 import asyncio
 import re
 
 
-class ServerConfig(commands.Cog):
+class MyView(discord.ui.View):
+    def __init__(self, pages):
+        super().__init__(timeout=10)
+        self.pages = pages
+        self.page_no = 0
+
+    async def on_timeout(self):
+        for child in self.children:
+            child.disabled = True
+        await self.message.edit(view=self)
+
+    @discord.ui.button(label="Previous", row=0, style=discord.ButtonStyle.primary)
+    async def button_callback(self, button, interaction):
+        self.page_no = max(0, self.page_no - 1)
+        embed = self.pages[self.page_no]
+        await interaction.response.edit_message(embed=embed, view=self)
+
+    @discord.ui.button(label="Next", row=0, style=discord.ButtonStyle.primary)
+    async def second_button_callback(self, button, interaction):
+        self.page_no = min(len(self.pages) - 1, self.page_no + 1)
+        embed = self.pages[self.page_no]
+        await interaction.response.edit_message(embed=embed, view=self)
+
+
+class Setup(commands.Cog):
+
     def __init__(self, bot):
         self.bot = bot
+
+    set = discord.SlashCommandGroup("set", "Set related commands")
+    blacklist = discord.SlashCommandGroup(
+        "blacklist", "Blacklist related commands")
 
     def list_roles(self, roles):
         if isinstance(roles, list):
@@ -25,41 +53,40 @@ class ServerConfig(commands.Cog):
         owner_invite_embed = discord.Embed(title=f"Hi {guild.owner.name},",
                                            description=f"I have been invited to your server **{guild.name}**"
                                            "\nI am a fun bot made for Femdom Communities to help Dommes to play with their subs and also punish them."
-                                           "\n\n**My prefix is `t.`**\n> **`t.setup`** use this command to set me up in the server"
-                                           "\n> **`t.help`** use this command to know me more.",
+                                           "\n\n**My prefix is `/`**\n> **`/setup`** use this command to set me up in the server"
+                                           "\n> **`/help`** use this command to know me more.",
                                            color=0xF2A2C0)
         owner_invite_embed.set_thumbnail(url=self.bot.user.avatar_url)
         owner_invite_embed.set_footer(text=f'created by {kuro_usagi}')
         await guild.owner.send(embed=owner_invite_embed)
-        
+
     @commands.Cog.listener()
     async def on_guild_remove(self, guild):
         database.remove_guild(guild.id)
 
-    @commands.command()
+    @discord.slash_command(description="Setup the bot")
     @commands.has_permissions(administrator=True)
-    @commands.guild_only()
-    async def setup(self, ctx):
+    async def setup(self, interaction: discord.Interaction):
         def check(res):
-            return ctx.author == res.author and res.channel == ctx.channel
+            return interaction.author == res.author and res.channel == interaction.channel
 
         setup_embed_domme = discord.Embed(title='Setting Me Up.. (1/4)',
                                           description=f"Mention Domme role/s in the server, \nI will consider members with those roles as Domme.\n> "
                                           "*I will wait 1 minute for you to mention the Domme role/s.*",
                                           color=0xBF99A0)
-        setup_embed_domme.set_thumbnail(url=self.bot.user.avatar_url)
+        setup_embed_domme.set_thumbnail(url=self.bot.user.avatar)
 
         setup_embed_slave = discord.Embed(title='Setting Me Up.. (2/4)',
                                           description=f"Mention Sub role/s in the server,\nI will consider members with those roles as Subs.\n> "
                                           "*I will wait 1 minute for you to mention the Sub role/s.*",
                                           color=0x591B32)
-        setup_embed_slave.set_thumbnail(url=self.bot.user.avatar_url)
+        setup_embed_slave.set_thumbnail(url=self.bot.user.avatar)
 
         setup_embed_prison = discord.Embed(title='Setting Me Up.. (4/4)',
                                            description=f"Mention a channel to lock Subs for punishments.\n> "
                                            "*I will wait 1 minute for you to mention a channel,*\n> *or type anything so I will make a new prison channel.*",
                                            color=0xF2A2C0)
-        setup_embed_prison.set_thumbnail(url=self.bot.user.avatar_url)
+        setup_embed_prison.set_thumbnail(url=self.bot.user.avatar)
 
         setup_embed_locker = discord.Embed(title='Setting Me Up.. (3/4)',
                                            description=f"Mention the lock roles, so only Members with that role can lock Subs in prison."
@@ -71,29 +98,31 @@ class ServerConfig(commands.Cog):
                                          f"you can always retry the setup again **`t.setup`**",
                                          color=0xFF2030)
 
-        setup_embed_fail.set_thumbnail(url=self.bot.user.avatar_url)
+        setup_embed_fail.set_thumbnail(url=self.bot.user.avatar)
 
         setup_embed_timeout = discord.Embed(title='Times Up',
                                             description=f"I can't wait for long, I have limited bandwidth\nits ok you can always try it again type **`t.setup`**",
                                             color=0xFF2030)
 
-        setup_embed_timeout.set_thumbnail(url=self.bot.user.avatar_url)
+        setup_embed_timeout.set_thumbnail(url=self.bot.user.avatar)
 
-        m = await ctx.send(embed=setup_embed_domme)
+        await interaction.response.send_message(embed=setup_embed_domme)
 
         try:
             response = await self.bot.wait_for('message', timeout=90, check=check)
-            domme_roles = "".join([role[3:-1] for role in re.findall(r'<@&\d*>', response.content)])
+            domme_roles = "".join(
+                [role[3:-1] for role in re.findall(r'<@&\d*>', response.content)])
             if domme_roles == '':
                 await response.reply(embed=setup_embed_fail)
                 return
-            database.insert_config('domme', ctx.guild.id, domme_roles)
+            database.insert_config('domme', interaction.guild.id, domme_roles)
             await response.delete()
-            await m.edit(embed=setup_embed_slave)
+            await interaction.followup.send(embed=setup_embed_slave)
 
             try:
                 response = await self.bot.wait_for('message', timeout=90, check=check)
-                slave_roles = [role[3:-1] for role in re.findall(r'<@&\d*>', response.content)]
+                slave_roles = [role[3:-1]
+                               for role in re.findall(r'<@&\d*>', response.content)]
                 for x in slave_roles:
                     if x in domme_roles:
                         slave_roles.pop(x)
@@ -102,13 +131,15 @@ class ServerConfig(commands.Cog):
                 if slave_roles == '':
                     await response.reply(embed=setup_embed_fail)
                     return
-                database.insert_config('slave', ctx.guild.id, slave_roles)
+                database.insert_config(
+                    'slave', interaction.guild.id, slave_roles)
                 await response.delete()
-                await m.edit(embed=setup_embed_locker)
+                await interaction.followup.send(embed=setup_embed_locker)
 
                 try:
                     response = await self.bot.wait_for('message', timeout=90, check=check)
-                    locker_roles = [role[3:-1] for role in re.findall(r'<@&\d*>', response.content)]
+                    locker_roles = [role[3:-1]
+                                    for role in re.findall(r'<@&\d*>', response.content)]
                     for x in locker_roles:
                         if x in slave_roles:
                             locker_roles.pop(x)
@@ -117,15 +148,18 @@ class ServerConfig(commands.Cog):
                     if locker_roles == '':
                         await response.reply(embed=setup_embed_fail)
                         return
-                    database.insert_config('locker', ctx.guild.id, locker_roles)
+                    database.insert_config(
+                        'locker', interaction.guild.id, locker_roles)
                     await response.delete()
-                    await m.edit(embed=setup_embed_prison)
+                    await interaction.followup.send(embed=setup_embed_prison)
 
                     try:
                         response = await self.bot.wait_for('message', timeout=90, check=check)
                         try:
-                            prison = [role[2:-1] for role in re.findall(r'<#\d*>', response.content)][0]
-                            database.insert_config('prison', ctx.guild.id, prison)
+                            prison = [
+                                role[2:-1] for role in re.findall(r'<#\d*>', response.content)][0]
+                            database.insert_config(
+                                'prison', interaction.guild.id, prison)
                             await response.delete()
 
                             d_roles = ''
@@ -145,15 +179,18 @@ class ServerConfig(commands.Cog):
                                                                 f"\nSubs in the server are the members with the following roles{s_roles}"
                                                                 f"\nMembers with following roles can lock sub in <#{prison}> {l_roles}"
                                                                 f"\nThe channel where Dommes can torture and punish subs.\n> <#{prison}>"
-                                                                f"\n\n**Use the command `t.help` to know more about me.**",
+                                                                f"\n\n**Use the command `/help` to know more about me.**",
                                                                 color=0x08FF08)
-                            setup_embed_summary.set_thumbnail(url=self.bot.user.avatar_url)
-                            await m.edit(embed=setup_embed_summary)
+                            setup_embed_summary.set_thumbnail(
+                                url=self.bot.user.avatar)
+                            await interaction.followup.send(embed=setup_embed_summary)
                         except IndexError:
-                            prison = database.get_config('prison', ctx.guild.id)
-                            if prison == [0] or ctx.guild.get_channel(int(prison[0])) is None:
-                                prison = await ctx.guild.create_text_channel('Prison')
-                                database.insert_config('prison', ctx.guild.id, prison.id)
+                            prison = database.get_config(
+                                'prison', interaction.guild.id)
+                            if prison == [0] or interaction.guild.get_channel(int(prison[0])) is None:
+                                prison = await interaction.guild.create_text_channel('Prison')
+                                database.insert_config(
+                                    'prison', interaction.guild.id, prison.id)
                                 prison = prison.id
                             else:
                                 prison = int(prison[0])
@@ -175,40 +212,41 @@ class ServerConfig(commands.Cog):
                                                                 f"\nThe channel where Dommes can torture and punish subs.\n> <#{prison}>"
                                                                 f"\n\n**Use the command `t.help` to know more about me.**",
                                                                 color=0x08FF08)
-                            setup_embed_summary.set_thumbnail(url=self.bot.user.avatar_url)
-                            await m.edit(embed=setup_embed_summary)
+                            setup_embed_summary.set_thumbnail(
+                                url=self.bot.user.avatar_url)
+                            await interaction.followup.send(embed=setup_embed_summary)
 
                     except asyncio.TimeoutError:
-                        await m.edit(embed=setup_embed_timeout)
+                        await interaction.followup.send(embed=setup_embed_timeout)
 
                 except asyncio.TimeoutError:
-                    await m.edit(embed=setup_embed_timeout)
+                    await interaction.followup.send(embed=setup_embed_timeout)
 
             except asyncio.TimeoutError:
-                await m.edit(embed=setup_embed_timeout)
+                await interaction.followup.send(embed=setup_embed_timeout)
 
         except asyncio.TimeoutError:
-            await m.edit(embed=setup_embed_timeout)
+            await interaction.followup.send(embed=setup_embed_timeout)
 
-        prisoner = database.get_config('prisoner', ctx.guild.id)
-        if prisoner == [0] or ctx.guild.get_role(int(prisoner[0])) is None:
-            prisoner = await ctx.guild.create_role(name='Prisoner', color=0x591B32)
-            database.insert_config('prisoner', ctx.guild.id, prisoner.id)
+        prisoner = database.get_config('prisoner', interaction.guild.id)
+        if prisoner == [0] or interaction.guild.get_role(int(prisoner[0])) is None:
+            prisoner = await interaction.guild.create_role(name='Prisoner', color=0x591B32)
+            database.insert_config(
+                'prisoner', interaction.guild.id, prisoner.id)
         else:
-            prisoner = ctx.guild.get_role(prisoner[0])
-        prison = ctx.guild.get_channel(int(prison))
-        channels = await ctx.guild.fetch_channels()
+            prisoner = interaction.guild.get_role(prisoner[0])
+        prison = interaction.guild.get_channel(int(prison))
+        channels = await interaction.guild.fetch_channels()
         for channel in channels:
             await channel.set_permissions(prisoner, view_channel=False, send_messages=False)
         await prison.set_permissions(prisoner, view_channel=True, send_messages=True)
-        await prison.set_permissions(ctx.guild.default_role, view_channel=True, send_messages=False)
+        await prison.set_permissions(interaction.guild.default_role, view_channel=True, send_messages=False)
 
         for r in range(int(len(domme_roles) / 18)):
             d_role = int((domme_roles[r * 18:(r * 18) + 18]))
-            await prison.set_permissions(ctx.guild.get_role(d_role), view_channel=True, send_messages=True)
+            await prison.set_permissions(interaction.guild.get_role(d_role), view_channel=True, send_messages=True)
 
-    @commands.command(aliases=['stats'])
-    @commands.guild_only()
+    @discord.slash_command(description="Stats of the bot")
     async def stat(self, ctx):
         prison = database.get_config('prison', ctx.guild.id)
         domme = database.get_config('domme', ctx.guild.id)
@@ -217,7 +255,7 @@ class ServerConfig(commands.Cog):
         chat = database.get_config('chat', ctx.guild.id)
         locker = database.get_config('locker', ctx.guild.id)
         t_mem = 0
-        
+
         for guild in self.bot.guilds:
             t_mem = t_mem + guild.member_count
 
@@ -243,113 +281,63 @@ class ServerConfig(commands.Cog):
                                        f"\n> type **`t.setup`** to set me up in the server"
                                        f"\n> type **`t.help`** to know more about me",
                                        color=0xF2A2C0)
-        stat_embed.set_thumbnail(url=self.bot.user.avatar_url)
-        await ctx.send(embed=stat_embed)
+        stat_embed.set_thumbnail(url=self.bot.user.avatar)
+        await ctx.respond(embed=stat_embed)
 
-    @commands.command()
+    @blacklist.command(description="Blacklist a member")
     @commands.has_permissions(administrator=True)
-    @commands.guild_only()
-    async def setNSFW(self, ctx, *, roles=None):
-        if roles is None or '@everyone' in roles:
-            database.clear_config('NSFW', ctx.guild.id)
-            sucess_embed = discord.Embed(description=f"NSFW command access is given to {ctx.guild.default_role}",
-                                         color=0xF2A2C0)
-            await ctx.reply(embed=sucess_embed)
+    async def list(self, ctx: commands.Context):
+        page_number = 1
+        size = 10
+        data = database.get_blacklist(ctx.guild.id)
+
+        if len(data) == 0:
+            await ctx.respond("There are no blacklisted members in this server")
             return
-        roles = "".join([role[3:-1] for role in re.findall(r'<@&\d*>', roles)])
-        if roles == "":
-            fail_embed = discord.Embed(description=f"{ctx.author.mention} you didn't mention any roles or you mentioned invalid roles.", color=0xF2A2C0)
-            await ctx.reply(embed=fail_embed)
-        else:
-            database.insert_config('NSFW', ctx.guild.id, roles)
-            sucess_embed = discord.Embed(description=f"NSFW command access is only for members with the following roles:\n{self.list_roles(database.get_config('NSFW', ctx.guild.id))}",
-                                         color=0xF2A2C0)
-            await ctx.reply(embed=sucess_embed)
 
-    @commands.command()
+        pages = []
+        for page in range(1, int(len(data) / size) + (len(data) % size > 0) + 1):
+            embed = self.page(data, page, size, ctx.guild.icon)
+            pages.append(embed)
+
+        view = MyView(pages)
+        view.message = await ctx.respond(embed=pages[0], view=view)
+
+    def page(self, lb_list, page, size, guild_icon):
+        start = (page - 1) * size
+        end = start + size
+        page_list = lb_list[start:end]
+
+        value = ""
+        for user_id in page_list:
+            value += f"> <@{user_id}>\n"
+
+        embed = discord.Embed(
+            title="Blacklisted Members",
+            description=value,
+            color=0xF2A2C0
+        )
+
+        embed.set_footer(
+            text=f"On page {page}/{int(len(lb_list) / size) + (len(lb_list) % size > 0) + 1}"
+        )
+        embed.set_thumbnail(url=guild_icon)
+        return embed
+
+    @blacklist.command(description="Blacklist a member")
     @commands.has_permissions(administrator=True)
-    @commands.guild_only()
-    async def setchat(self, ctx, *, roles=None):
-        if roles is None or '@everyone' in roles:
-            database.clear_config('chat', ctx.guild.id)
-            sucess_embed = discord.Embed(description=f"{ctx.guild.default_role} can chat with me.",
-                                         color=0xF2A2C0)
-            await ctx.reply(embed=sucess_embed)
-            return
-        roles = "".join([role[3:-1] for role in re.findall(r'<@&\d*>', roles)])
-        if roles == "":
-            fail_embed = discord.Embed(description=f"{ctx.author.mention} you didn't mention any roles or you mentioned invalid roles.", color=0xF2A2C0)
-            await ctx.reply(embed=fail_embed)
+    async def toggle(self, ctx: commands.Context, member: discord.Member):
+        if database.insert_remove_blacklist(member.id, ctx.guild.id):
+            embed = discord.Embed(title='Added into Blacklist',
+                                  description=f"{member.mention} is Blacklisted, now the member can't lock anyone in the server anymore.", color=0xFF2030)
+            embed.set_thumbnail(url=member.avatar)
+            await ctx.respond(embed=embed)
         else:
-            database.insert_config('chat', ctx.guild.id, roles)
-            sucess_embed = discord.Embed(description=f"Only Members with the following roles can chat with me:\n{self.list_roles(database.get_config('chat', ctx.guild.id))}",
-                                         color=0xF2A2C0)
-            await ctx.reply(embed=sucess_embed)
-
-    @commands.command()
-    @commands.has_permissions(administrator=True)
-    @commands.guild_only()
-    async def blacklist(self, ctx, member: discord.Member = None):
-        if member is None:
-            page_number = 1
-            size = 10
-            data = database.get_blacklist(ctx.guild.id)
-
-            def page(lb_list, page, size):
-                value = ''
-                try:
-                    for x in range(((page - 1) * size), ((page - 1) * size) + size):
-                        value = value + f"> <@{lb_list[x]}>\n"
-                    embed = discord.Embed(title="Blacklisted Members", description=value, color=0xF2A2C0)
-                except IndexError:
-                    embed = discord.Embed(title="Blacklisted Members", description=value, color=0xF2A2C0)
-
-                embed.set_footer(text=f"On page {page}/{int(len(lb_list) / size) + (len(lb_list) % size > 0) + 1}")
-                embed.set_thumbnail(url=ctx.guild.icon_url)
-                return embed
-
-            def check(reaction, user):
-                return user == ctx.author
-
-            embed = page(data, 1, size)
-            box = await ctx.channel.send(embed=embed)
-            await box.add_reaction('⏪')
-            await box.add_reaction('⏩')
-            while True:
-                try:
-                    reaction, user = await self.bot.wait_for('reaction_add', timeout=30.0, check=check)
-                    await box.remove_reaction(reaction, user)
-                except asyncio.TimeoutError:
-                    break
-                if str(reaction) == '⏪':
-                    if page_number == 1:
-                        pass
-                    else:
-                        embed = page(data, page_number - 1, size)
-                        page_number -= 1
-                if str(reaction) == '⏩':
-                    if page_number == int(len(data) / size) + (len(data) % size > 0) + 1:
-                        pass
-                    else:
-                        embed = page(data, page_number + 1, size)
-                        page_number += 1
-                await box.edit(embed=embed)
-        else:
-            if database.insert_remove_blacklist(member.id, ctx.guild.id):
-                embed = discord.Embed(title='Added into Blacklist', description=f"{member.mention} is Blacklisted, now the member can't lock anyone in the server anymore.", color=0xFF2030)
-            else:
-                embed = discord.Embed(title='Removed from Blacklist', description=f"{member.mention} is no longer Blacklisted, and can lock the subs <#{database.get_config('prison', ctx.guild.id)[0]}>", color=0x08FF08)
-            embed.set_thumbnail(url=member.avatar_url)
-            await ctx.send(embed=embed)
-
-    @blacklist.error
-    async def on_blacklist_error(self, ctx, error):
-        if isinstance(error, commands.MissingRequiredArgument) or isinstance(error, commands.BadArgument) or isinstance(error, commands.MemberNotFound):
-            embed = discord.Embed(description=f"Usage:\n**`t.blacklist @mention`** to **add** or **remove** member from blacklist."
-                                              f"\n**`t.blacklist`** to see the list of blacklisted members.",
-                                  color=0xFF2030)
-            await ctx.send(embed=embed)
+            embed = discord.Embed(title='Removed from Blacklist',
+                                  description=f"{member.mention} is no longer Blacklisted, and can lock the subs <#{database.get_config('prison', ctx.guild.id)[0]}>", color=0x08FF08)
+            embed.set_thumbnail(url=member.avatar)
+            await ctx.respond(embed=embed)
 
 
 def setup(bot):
-    bot.add_cog(ServerConfig(bot))
+    bot.add_cog(Setup(bot))

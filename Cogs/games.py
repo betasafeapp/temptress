@@ -102,25 +102,22 @@ class Games(commands.Cog):
             else:
                 await message.delete()
 
-    @commands.command()
+    @discord.slash_command(description='Starts a counting game.')
     @commands.has_permissions(administrator=True)
-    @commands.guild_only()
     async def setcount(self, ctx, channel: discord.TextChannel = None):
         channel = channel or ctx.channel
         data = f"70_{channel.id}_0_0_0"
         database.insert_config('counting', ctx.guild.id, data)
         await channel.send('I will start with my fav number.')
-        m = await channel.send('69')
-        await m.add_reaction(emoji='pinkcoin:968277243946233906')
+        await channel.send('69')
         embed = discord.Embed(title='Counting',
                               description=f"{channel.mention} is the counting channel.\n**How to earn more pinkcoins <a:pinkcoin:968277243946233906>**"
                               f"\n> Counting earns pinkcoins <a:pinkcoin:968277243946233906>\n> Dommes can ruin by **`t.ruin`** the game and earn pinkcoins <a:pinkcoin:968277243946233906>"
                               f"\n> Guessing the correct number after ruing also gives pinkcoins <a:pinkcoin:968277243946233906>", color=0xF2A2C0)
-        embed.set_thumbnail(url=self.bot.user.avatar_url)
-        await ctx.send(embed=embed)
+        embed.set_thumbnail(url=self.bot.user.avatar)
+        await ctx.respond(embed=embed)
 
-    @commands.command()
-    @commands.guild_only()
+    @discord.slash_command(description='Ruins the counting game and earns pinkcoins <a:pinkcoin:968277243946233906>')
     @commands.cooldown(1, 1 * 60 * 60, commands.BucketType.user)
     async def ruin(self, ctx):
         if ctx.author.bot:
@@ -131,33 +128,32 @@ class Games(commands.Cog):
                 data = database.get_config_raw('counting', ctx.guild.id).split('_')  # [number, channel, member, message, count_length]
             except AttributeError:
                 embed = discord.Embed(description=f"Counting channel is not configured yet, ask Admins to run **`t.setcount #countChannel`**", color=0xF2A2C0)
-                await ctx.reply(embed=embed)
+                await ctx.respond(embed=embed)
                 return
             if ctx.channel.id != int(data[1]):
-                await ctx.reply(f"You should use this command in <#{data[1]}>")
+                await ctx.respond(f"You should use this command in <#{data[1]}>")
             elif set(database.get_config('domme', ctx.guild.id)) & set([role.id for role in ctx.author.roles]) or set(database.get_config('slave', ctx.guild.id)) & set([role.id for role in ctx.author.roles]):
                 database.add_money(ctx.author.id, ctx.guild.id, int(data[4]), 0)
                 data_ = f"{-1 * random.randint(70, 1000)}_{ctx.channel.id}_0_0_0"
                 database.insert_config('counting', ctx.guild.id, data_)
-                embed = discord.Embed(description=f"{ctx.author.mention} ruined the counting and earned {data[4]} <a:pinkcoin:968277243946233906>"
+                embed = discord.Embed(description=f"{ctx.author.mention} ruined the counting and earned {data[4]} :coin:"
                                     f"\n\n\n> **Now guess the next number to earn more**", color=0xF2A2C0)
-                embed.set_thumbnail(url=ctx.author.avatar_url)
-                await ctx.send(embed=embed)
+                embed.set_thumbnail(url=ctx.author.avatar)
+                await ctx.respond(embed=embed)
             else:
                 roles = '>'
                 for r in database.get_config('domme', ctx.guild.id):
                     roles = f"{roles} <@&{r}>\n>"
                 embed = discord.Embed(description=f"you don't have any of the following roles to ruin the game.\n{roles[:-2]}", color=0xF2A2C0)
-                await ctx.send(embed=embed)
+                await ctx.respond(embed=embed)
         else:
             embed = discord.Embed(title='Bot ban',
                                   description=f"{ctx.author.mention} you are banned from using {self.bot.user.mention} till <t:{ban_data[1]}:F>",
                                   color=0xF2A2C0)
-            await ctx.send(embed=embed)
+            await ctx.respond(embed=embed)
             
             
-    @commands.command()
-    @commands.guild_only()
+    @discord.slash_command(description="Transfer coins to other members")
     async def give(self, ctx, member:discord.Member, amount:int):
         if ctx.author.bot:
             return
@@ -165,28 +161,27 @@ class Games(commands.Cog):
         elif member.bot:  # when mentioned member is bot
             embed = discord.Embed(description=f"{member.mention} is a bot not a Person!",
                                   color=0xF2A2C0)
-            await ctx.send(embed=embed)
+            await ctx.respond(embed=embed)
             return
         
         ban_embed = self.ban_check(ctx.author, member)
         if ban_embed is not None:
-            await ctx.send(embed=ban_embed)
+            await ctx.respond(embed=ban_embed)
             return
         
         coin = database.get_money(ctx.author.id, ctx.guild.id)[2]
         if coin < amount:
-            await ctx.reply(f"<:staff:968289925151752212> really, you are broke, you only have {coin}<a:pinkcoin:968277243946233906>")
+            await ctx.respond(f"really, you are broke, you only have {coin} :coin:")
         elif amount < 10:
-            await ctx.reply(f"<:staff:968289925151752212> Grrr....,  10<a:pinkcoin:968277243946233906> is minimum amount to transfer")
+            await ctx.respond(f"Grrr....,  10 :coin: is minimum amount to transfer")
         else:
             database.add_money(member.id, ctx.guild.id, amount, 0)
             database.remove_money(ctx.author.id, ctx.guild.id, amount, 0)
-            embed = discord.Embed(description=f"{ctx.author.mention} gave {amount} <a:pinkcoin:968277243946233906> to {member.mention}",
+            embed = discord.Embed(description=f"{ctx.author.mention} gave {amount} :coin: to {member.mention}",
                                   color=0xF2A2C0)
-            await ctx.send(embed=embed)
+            await ctx.respond(embed=embed)
         
-    @commands.command(aliases=['praise', 'simp', 'footkiss', 'feetkiss'])
-    @commands.guild_only()
+    @discord.slash_command(description="Worship a person")
     async def worship(self, ctx, member: discord.Member):
         if ctx.author.bot:
             return
@@ -194,7 +189,7 @@ class Games(commands.Cog):
         elif member.bot:  # when mentioned member is bot
             embed = discord.Embed(description=f"{member.mention} is a bot not a Person!",
                                   color=0xF2A2C0)
-            await ctx.send(embed=embed)
+            await ctx.respond(embed=embed)
             return
         
         ban_embed = self.ban_check(ctx.author, member)
@@ -218,22 +213,21 @@ class Games(commands.Cog):
                         lines = f.read().splitlines()
                         link = random.choice(lines)
                     simp_embed.set_image(url=link)
-                    await ctx.send(embed=simp_embed)
+                    await ctx.respond(embed=simp_embed)
                 else:
-                    embed = discord.Embed(description=f"{ctx.author.mention} you need at least 100 <a:pinkcoin:968277243946233906> to simp for {member.mention}", color=0xF2A2C0)
-                    await ctx.send(embed=embed)
+                    embed = discord.Embed(description=f"{ctx.author.mention} you need at least 100 :moneybag: to simp for {member.mention}", color=0xF2A2C0)
+                    await ctx.respond(embed=embed)
             else:
                 embed = discord.Embed(description=f'{ctx.author.mention} This is not a NSFW Channel try again in NSFW channel.', color=0xF2A2C0)
-                await ctx.reply(embed=embed)
+                await ctx.respond(embed=embed)
         else:
             roles = '>'
             for r in database.get_config('domme', ctx.guild.id):
                 roles = f"{roles} <@&{r}>\n>"
             embed = discord.Embed(description=f"You can only simp/worship members with following roles.\n{roles[:-2]}", color=0xF2A2C0)
-            await ctx.send(embed=embed)
+            await ctx.respond(embed=embed)
 
-    @commands.command()
-    @commands.guild_only()
+    @discord.slash_command(description="Check your balance")
     async def bal(self, ctx, member: discord.Member=None):
         if ctx.author.bot:
             return
@@ -241,50 +235,22 @@ class Games(commands.Cog):
         member = member or ctx.author
         ban_embed = self.ban_check(ctx.author, member)
         if ban_embed is not None:
-            await ctx.send(embed=ban_embed)
+            await ctx.respond(embed=ban_embed)
             return
 
         elif member.bot:  # when mentioned member is bot
             embed = discord.Embed(description=f"{member.mention} is a bot not a Person!",
                                   color=0xF2A2C0)
-            await ctx.send(embed=embed)
+            await ctx.respond(embed=embed)
             
         else:
             money = database.get_money(member.id, member.guild.id)
             embed = discord.Embed(title="Cash",
-                                  description=f"\n> <a:pinkcoin:968277243946233906> {money[2]}\n> <a:gems:968277243581325313> {money[3]}",
+                                  description=f"\n> :moneybag:  {money[2]}\n> :coin: {money[3]}",
                                   color=0xF2A2C0)
-            embed.set_thumbnail(url=member.avatar_url)
-            await ctx.send(embed=embed)
-    ##############################################################################
-    #                                                                            #
-    #                                                                            #
-    #                                  ERRORS                                    #
-    #                                                                            #
-    #                                                                            #
-    ##############################################################################
+            embed.set_thumbnail(url=member.avatar)
+            await ctx.respond(embed=embed)
 
-    @ruin.error
-    async def on_ruin_error(self, ctx, error):
-        if isinstance(error, commands.errors.CommandOnCooldown):
-            embed = discord.Embed(title="Ruin Cooldown is 1h",
-                                  description="{} you need to wait {:,.1f} minutes to ruin the game again.".format(ctx.author.mention, (error.retry_after // 60) + 1),
-                                  color=0xFF2030)
-        await ctx.send(embed=embed)
-
-    @worship.error
-    async def on_worship_error(self, ctx, error):
-        if isinstance(error, commands.MissingRequiredArgument) or isinstance(error, commands.BadArgument) or isinstance(error, commands.MemberNotFound):
-            embed = discord.Embed(description=f"Usage:\n**`t.worship @mention`**",
-                                  color=0xFF2030)
-            await ctx.send(embed=embed)
-
-    @give.error
-    async def on_give_error(self, ctx, error):
-        if isinstance(error, commands.MissingRequiredArgument) or isinstance(error, commands.BadArgument) or isinstance(error, commands.MemberNotFound):
-            embed = discord.Embed(description=f"Usage:\n**`t.give @mention <amount>`**",
-                                  color=0xFF2030)
-            await ctx.send(embed=embed)
 
 def setup(bot):
     bot.add_cog(Games(bot))

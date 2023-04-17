@@ -7,7 +7,7 @@ from time import time
 from random import randint
 
 
-con = psycopg2.connect(environ['DATABASE_URL'])
+con = psycopg2.connect('postgresql://josiah:helloworld@localhost:5432/temptress')
 cur = con.cursor()
 
 

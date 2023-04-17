@@ -511,8 +511,7 @@ class Lock(commands.Cog):
                                                color=0xF2A2C0)
             await ctx.reply(embed=unlock_slave_embed)
 
-    @commands.command()
-    @commands.guild_only()
+    @discord.slash_command(description='this command will enable prisoner to escape from prison and grand 6h of protection.')
     async def escape(self, ctx):
         """
         this command will enable prisoner to escape from prison and grand 6h of protection.
@@ -522,7 +521,7 @@ class Lock(commands.Cog):
 
         if not set(database.get_config('prisoner', ctx.guild.id)) & set([role.id for role in ctx.author.roles]):  # if author does not have prisoner role
             embed = discord.Embed(title='Already Free', description=f"{ctx.author.mention} is already in woods enjoying the sun.", color=0xF2A2C0)
-            await ctx.reply(embed=embed)
+            await ctx.respond(embed=embed)
             return
 
         if database.get_money(ctx.author.id, ctx.guild.id)[3] != 0 or ctx.author.id == 104373103802466304:  # if prisoner have gems
@@ -530,40 +529,12 @@ class Lock(commands.Cog):
                 database.remove_money(ctx.author.id, ctx.guild.id, 0, 10)
             prisoner = ctx.guild.get_role(database.get_config('prisoner', ctx.guild.id)[0])
             await ctx.author.remove_roles(prisoner)
-            embed = discord.Embed(description=f"{ctx.author.mention} was lucky to have a magic gem <a:gems:968277243581325313> and escaped from {ctx.channel.mention}", color=0xF2A2C0)
-            await ctx.send(embed=embed)
+            embed = discord.Embed(description=f"{ctx.author.mention} was lucky to have a magic gem and escaped from {ctx.channel.mention}", color=0xF2A2C0)
+            await ctx.respond(embed=embed)
             database.insert_escape(ctx.author.id, ctx.guild.id, 1, 'gem')
         else:  # if prisoner does not have a gem
-            embed = discord.Embed(description=f"{ctx.author.mention} you don't have magic gem <a:gems:968277243581325313> to be free.", color=0xF2A2C0)
-            await ctx.reply(embed=embed)
-
-    ##############################################################################
-    #                                                                            #
-    #                                                                            #
-    #                                  ERRORS                                    #
-    #                                                                            #
-    #                                                                            #
-    ##############################################################################
-
-    @lock.error
-    async def on_lock_error(self, ctx, error):
-        if isinstance(error, commands.MissingRequiredArgument) or isinstance(error, commands.BadArgument) or isinstance(error, commands.MemberNotFound):
-            embed = discord.Embed(title='How to use Prison?', description=f"Usage:\n> **`t.lock @mention`** "
-                                  f"\nAfter it just enjoy the slave punishment!",
-                                  color=0xFF2030)
-        elif isinstance(error, commands.errors.CommandOnCooldown):
-            embed = discord.Embed(title="Prison Cooldown is 3h",
-                                  description="{} you need to wait {:,.1f} minutes to lock a slave again.".format(ctx.author.mention, (error.retry_after // 60) + 1),
-                                  color=0xFF2030)
-        await ctx.send(embed=embed)
-
-    @unlock.error
-    async def on_unlock_error(self, ctx, error):
-        if isinstance(error, commands.MissingRequiredArgument) or isinstance(error, commands.BadArgument) or isinstance(error, commands.MemberNotFound):
-            embed = discord.Embed(title='How to save a slave from Prison?', description=f"Usage:\n> **`t.unlock @mention`** ",
-                                  color=0xFF2030)
-        await ctx.send(embed=embed)
-
+            embed = discord.Embed(description=f"{ctx.author.mention} you don't have magic gem to be free.", color=0xF2A2C0)
+            await ctx.respond(embed=embed)
 
 def setup(bot):
     bot.add_cog(Lock(bot))

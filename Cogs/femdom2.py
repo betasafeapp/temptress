@@ -1,9 +1,7 @@
-#!/bin/python3
 import database
 import discord
 import asyncio
 from discord.ext import commands
-from discord_components import *
 
 
 def who_is(author, member):
@@ -71,6 +69,72 @@ def who_is(author, member):
         return -1 * ban_data[1]
 
 
+class MyView(discord.ui.View):
+    def __init__(self, action):
+        super().__init__(timeout=10)
+        self.action = action
+
+    async def on_timeout(self):
+        for child in self.children:
+            child.disabled = True
+        await self.message.edit(view=self)
+
+    @discord.ui.button(label="No", row=0, style=discord.ButtonStyle.primary, emoji="👎")
+    async def button_callback(self, button, interaction):
+        await interaction.response.send_message("Mission Aborted", ephemeral=True)
+
+    @discord.ui.button(label="Yes Do It", row=0, style=discord.ButtonStyle.primary, emoji="👍")
+    async def second_button_callback(self, button, interaction):
+        await interaction.response.send_message("You said yes", ephemeral=True)
+        await self.action.blind()
+        
+
+class ChastityView(discord.ui.View):
+    def __init__(self, action):
+        super().__init__(timeout=10)
+        self.action = action
+
+    async def on_timeout(self):
+        for child in self.children:
+            child.disabled = True
+        await self.message.edit(view=self)
+
+    @discord.ui.button(label="Chastity Unlock", row=0, style=discord.ButtonStyle.primary, emoji="🔓")
+    async def button_callback(self, button, interaction):
+        await interaction.response.send_message("Mission Aborted", ephemeral=True)
+        await self.action.chastity(True)
+
+    @discord.ui.button(label="Chastity Lock", row=0, style=discord.ButtonStyle.primary, emoji="🔒")
+    async def second_button_callback(self, button, interaction):
+        await interaction.response.send_message("You said yes", ephemeral=True)
+        await self.action.chastity(False)
+
+
+class MuffView(discord.ui.View):
+    def __init__(self, action, member, ctx):
+        super().__init__(timeout=10)
+        self.action = action
+        self.member = member
+        self.ctx = ctx
+
+    async def on_timeout(self):
+        for child in self.children:
+            child.disabled = True
+        await self.message.edit(view=self)
+
+    @discord.ui.button(label="Remove Ear Muffs", row=0, style=discord.ButtonStyle.primary, emoji="🔓")
+    async def button_callback(self, button, interaction):
+        await self.action.muff(True)
+        database.update_slaveDB(self.member.id, 'muff', True, self.ctx.guild.id)
+        await interaction.response.send_message("User has been muffed")
+
+    @discord.ui.button(label="Give Ear Muffs", row=0, style=discord.ButtonStyle.primary, emoji="🔒")
+    async def second_button_callback(self, button, interaction):
+          await self.action.muff(False)
+          database.update_slaveDB(self.member.id, 'muff', False, self.ctx.guild.id)
+          await interaction.response.send_message("The user may connect to VC now")
+
+
 class Action:
     def __init__(self, bot, ctx, member):
         self.bot = bot
@@ -87,11 +151,14 @@ class Action:
         else:
             return roles
 
-    async def react(self, y_n):
-        if y_n == 'yes' or y_n == 'y':
-            await self.ctx.message.add_reaction(emoji='yes:968277243359027221')
-        elif y_n == 'no' or y_n == 'n':
-            await self.ctx.message.add_reaction(emoji='no:968277243266756618')
+    async def blind(self):
+        channels = await self.ctx.guild.fetch_channels()
+        for channel in channels:
+            await channel.set_permissions(self.member, view_channel=False, send_messages=False)
+        await self.member.respond(f"you are blindfolded in the server **{self.ctx.guild.name}** for 5 minutes.")
+        await asyncio.sleep(5 * 60)
+        for channel in channels:
+            await channel.set_permissions(self.member, overwrite=None)
 
     async def chastity(self, access, temp=False):
         channels = await self.ctx.guild.fetch_channels()
@@ -121,22 +188,13 @@ class Action:
                     await channel.set_permissions(self.member, connect=False)
                     database.update_slaveDB(self.member.id, 'muff', True, self.ctx.guild.id)
 
-    async def blind(self):
-        channels = await self.ctx.guild.fetch_channels()
-        for channel in channels:
-            await channel.set_permissions(self.member, view_channel=False, send_messages=False)
-        await self.member.send(f"you are blindfolded in the server **{self.ctx.guild.name}** for 5 minutes.")
-        await asyncio.sleep(5 * 60)
-        for channel in channels:
-            await channel.set_permissions(self.member, overwrite=None)
 
-
-class Femdom(commands.Cog):
+class Femdom2(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        DiscordComponents(bot)
 
     def list_roles(self, roles):
+        print(roles)
         if isinstance(roles, list):
             role = '>'
             for r in roles:
@@ -144,9 +202,9 @@ class Femdom(commands.Cog):
             return role[:-2]
         else:
             return roles
-
-    @commands.command()
-    @commands.guild_only()
+        
+    
+    @discord.slash_command(description="Chastity a member")
     async def chastity(self, ctx, member: discord.Member):
         if ctx.author.bot:
             return
@@ -155,7 +213,7 @@ class Femdom(commands.Cog):
             embed = discord.Embed(title='I am not ready yet.',
                                   description=f"Ask the Admins to run the command **`t.setup`** and try again",
                                   color=0xF2A2C0)
-            await ctx.send(embed=embed)
+            await ctx.respond(embed=embed)
             return
         
         if member.bot:
@@ -163,16 +221,16 @@ class Femdom(commands.Cog):
                 embed = discord.Embed(title='Nah',
                                       description=f"You can't deny my cum permission, I will cum all day long and you can't stop me.<a:bully:968288741733064814>",
                                       color=0xF2A2C0)
-                await ctx.send(embed=embed)
+                await ctx.respond(embed=embed)
             else:
                 embed = discord.Embed(title='Nah',
                                       description=f"You can't keep Bots in chastity.",
                                       color=0xF2A2C0)
-                await ctx.send(embed=embed)
+                await ctx.respond(embed=embed)
         else:
             if member.guild_permissions.administrator:
                 embed = discord.Embed(description=f"{member.mention} have administrator permission, I am sorry.", color=0xF2A2C0)
-                await ctx.reply(embed=embed)
+                await ctx.respond(embed=embed)
                 return
             action = Action(self.bot, ctx, member)
             member_is = who_is(ctx.author, member)
@@ -195,30 +253,7 @@ class Femdom(commands.Cog):
 
             elif member_is == 200:
                 embed = discord.Embed(title='So what should I do?', color=0xF2A2C0)
-                m = await ctx.reply(embed=embed, components=[[Button(style=ButtonStyle.green, label='Chastity Unlock', emoji='🔓', disabled=database.get_slave_from_DB(member.id, ctx.guild.id)[0][6]),
-                                                              Button(style=ButtonStyle.red, label='Chastity Lock', emoji='🔒', disabled=not database.get_slave_from_DB(member.id, ctx.guild.id)[0][6])]])
-                try:
-                    def check(res):
-                        return ctx.author == res.user and res.channel == ctx.channel
-
-                    response = await self.bot.wait_for('button_click', timeout=30, check=check)
-                    await response.respond(type=6)
-                    if response.component.label == 'Chastity Lock':
-                        embed = discord.Embed(description=f"{member.mention} can't access NSFW Channels in this server.", color=0xFF2030)
-                        await m.edit(embed=embed, components=[[Button(style=ButtonStyle.green, label='Chastity Unlock', emoji='🔓', disabled=True),
-                                                               Button(style=ButtonStyle.red, label='Chastity Lock', emoji='🔒', disabled=True)]])
-                        await action.chastity(False)
-
-                    elif response.component.label == 'Chastity Unlock':
-                        embed = discord.Embed(description=f"{member.mention} can access NSFW Channels in this server.", color=0x08FF08)
-                        await m.edit(embed=embed, components=[[Button(style=ButtonStyle.green, label='Chastity Unlock', emoji='🔓', disabled=True),
-                                                               Button(style=ButtonStyle.red, label='Chastity Lock', emoji='🔒', disabled=True)]])
-                        await action.chastity(True)
-
-                except asyncio.TimeoutError:
-                    embed = discord.Embed(description='Time\'s up, you got only 30 secs to make a choice.', color=0xF2A2C0)
-                    await m.edit(embed=embed, components=[[Button(style=ButtonStyle.green, label='Chastity Unlock', emoji='🔓', disabled=True),
-                                                           Button(style=ButtonStyle.red, label='Chastity Lock', emoji='🔒', disabled=True)]])
+                await ctx.respond(embed=embed, view=ChastityView(action))
                 return
 
             elif member_is > 300:
@@ -243,11 +278,6 @@ class Femdom(commands.Cog):
                 embed = discord.Embed(description=f"{member.mention} should have any of the following roles \n{self.list_roles(database.get_config('domme', member.guild.id))}\n{self.list_roles(database.get_config('slave', member.guild.id))}",
                                       color=0xF2A2C0)
 
-            elif member_is == 0:  # when the author doesn't have domme or slave role.
-                embed = discord.Embed(
-                    description=f"{ctx.author.mention}, you should have any of the following roles \n{self.list_roles(database.get_config('domme', member.guild.id))}\n{self.list_roles(database.get_config('slave', member.guild.id))}",
-                    color=0xF2A2C0)
-
             elif member_is == -1:  # when member is bot banned
                 embed = discord.Embed(title='Bot ban',
                                       description=f"{member.mention} is banned from using {self.bot.user.mention}",
@@ -256,12 +286,11 @@ class Femdom(commands.Cog):
                 embed = discord.Embed(title='Bot ban',
                                       description=f"{ctx.author.mention} you are banned from using {self.bot.user.mention} till <t:{member_is * -1}:F>",
                                       color=0xF2A2C0)
+                
+            embed = discord.Embed(title='So what should I do?', color=0xF2A2C0)
+            await ctx.respond(embed=embed, view=ChastityView(action))
 
-            await action.react('n')
-            await ctx.send(embed=embed)
-
-    @commands.command()
-    @commands.guild_only()
+    @discord.slash_command(description="Muffs a member")
     async def muffs(self, ctx, member: discord.Member):
         if ctx.author.bot:
             return
@@ -270,18 +299,18 @@ class Femdom(commands.Cog):
             embed = discord.Embed(title='I am not ready yet.',
                                   description=f"Ask the Admins to run the command **`t.setup`** and try again",
                                   color=0xF2A2C0)
-            await ctx.send(embed=embed)
+            await ctx.respond(embed=embed)
             return
         
         if member.bot:
             embed = discord.Embed(title='Nah',
                                   description=f"{member.mention} is bot don't be dumb like Shaman.",
                                   color=0xF2A2C0)
-            await ctx.send(embed=embed)
+            await ctx.respond(embed=embed)
         else:
             if member.guild_permissions.administrator:
                 embed = discord.Embed(description=f"{member.mention} have administrator permission, I am sorry.", color=0xF2A2C0)
-                await ctx.reply(embed=embed)
+                await ctx.respond(embed=embed)
                 return
             action = Action(self.bot, ctx, member)
             member_is = who_is(ctx.author, member)
@@ -304,31 +333,8 @@ class Femdom(commands.Cog):
 
             elif member_is == 200:
                 embed = discord.Embed(title='So what should I do?', color=0xF2A2C0)
-                m = await ctx.reply(embed=embed, components=[[Button(style=ButtonStyle.green, label='Remove Ear Muffs', disabled=database.get_slave_from_DB(member.id, ctx.guild.id)[0][7]),
-                                                              Button(style=ButtonStyle.red, label='Give Ear Muffs', disabled=not database.get_slave_from_DB(member.id, ctx.guild.id)[0][7])]])
-                try:
-                    def check(res):
-                        return ctx.author == res.user and res.channel == ctx.channel
-
-                    response = await self.bot.wait_for('button_click', timeout=30, check=check)
-                    await response.respond(type=6)
-                    if response.component.label == 'Give Ear Muffs':
-                        embed = discord.Embed(description=f"{member.mention} can't connect to any Voice Channels in this server.", color=0xFF2030)
-                        await m.edit(embed=embed, components=[[Button(style=ButtonStyle.green, label='Remove Ear Muffs', disabled=True),
-                                                               Button(style=ButtonStyle.red, label='Give Ear Muffs', disabled=True)]])
-                        await action.muff(False)
-                        database.update_slaveDB(member.id, 'muff', False, ctx.guild.id)
-
-                    elif response.component.label == 'Remove Ear Muffs':
-                        embed = discord.Embed(description=f"{member.mention} can connect to Voice Channels in this server.", color=0x08FF08)
-                        await m.edit(embed=embed, components=[[Button(style=ButtonStyle.green, label='Remove Ear Muffs', disabled=True),
-                                                               Button(style=ButtonStyle.red, label='Give Ear Muffs', disabled=True)]])
-                        await action.muff(True)
-                        database.update_slaveDB(member.id, 'muff', True, ctx.guild.id)
-                except asyncio.TimeoutError:
-                    embed = discord.Embed(description='Time\'s up, you got only 30 secs to make a choice.', color=0xF2A2C0)
-                    await m.edit(embed=embed, components=[[Button(style=ButtonStyle.green, label='Remove Ear Muffs', disabled=True),
-                                                           Button(style=ButtonStyle.red, label='Give Ear Muffs', disabled=True)]])
+                await ctx.respond(embed=embed, view=MuffView(action, member, ctx))
+              
                 return
 
             elif member_is > 300:
@@ -366,21 +372,21 @@ class Femdom(commands.Cog):
                                       description=f"{ctx.author.mention} you are banned from using {self.bot.user.mention} till <t:{member_is * -1}:F>",
                                       color=0xF2A2C0)
 
-            await action.react('n')
-            await ctx.send(embed=embed)
+            embed = discord.Embed(title='So what should I do?', color=0xF2A2C0)
+            await ctx.respond(embed=embed, view=MuffView(action, member, ctx))
 
-    @commands.command()
-    @commands.guild_only()
+    @discord.slash_command(description='Blindfold a slave')
     @commands.cooldown(3, 4 * 60 * 60, commands.BucketType.user)
     async def blind(self, ctx, member: discord.Member):
         if ctx.author.bot:
             return
 
-        if not database.is_config(ctx.guild.id):  # if bot is not configred in the server
+        # if bot is not configred in the server
+        if not database.is_config(ctx.guild.id):
             embed = discord.Embed(title='I am not ready yet.',
                                   description=f"Ask the Admins to run the command **`t.setup`** and try again",
                                   color=0xF2A2C0)
-            await ctx.send(embed=embed)
+            await ctx.respond(embed=embed)
             return
 
         if member.bot:
@@ -388,16 +394,17 @@ class Femdom(commands.Cog):
                 embed = discord.Embed(title='Nah',
                                       description=f"You can't blindfold me, my eyes are powerful I see everything.",
                                       color=0xF2A2C0)
-                await ctx.send(embed=embed)
+                await ctx.respond(embed=embed)
             else:
                 embed = discord.Embed(title='Nah',
                                       description=f"You can't blindfold Bots.",
                                       color=0xF2A2C0)
-                await ctx.send(embed=embed)
+                await ctx.respond(embed=embed)
         else:
             if member.guild_permissions.administrator:
-                embed = discord.Embed(description=f"{member.mention} have administrator permission, I am sorry.", color=0xF2A2C0)
-                await ctx.reply(embed=embed)
+                embed = discord.Embed(
+                    description=f"{member.mention} have administrator permission, I am sorry.", color=0xF2A2C0)
+                await ctx.respond(embed=embed)
                 return
             action = Action(self.bot, ctx, member)
             member_is = who_is(ctx.author, member)
@@ -419,31 +426,9 @@ class Femdom(commands.Cog):
                                       color=0xF2A2C0)
 
             elif member_is == 200:
-                embed = discord.Embed(title='Are you sure that you wanna do this?', description=f"{member.mention} will not be able to see any channels in this server for 5 mins.", color=0xF2A2C0)
-                m = await ctx.reply(embed=embed, components=[[Button(style=ButtonStyle.green, label='No'),
-                                                              Button(style=ButtonStyle.red, label='Yes do it')]])
-                try:
-                    def check(res):
-                        return ctx.author == res.user and res.channel == ctx.channel
-
-                    response = await self.bot.wait_for('button_click', timeout=30, check=check)
-                    await response.respond(type=6)
-                    if response.component.label == 'Yes do it':
-                        embed = discord.Embed(description=f"{member.mention} can't see any of the Channels in this server for next 5 mins.", color=0xFF2030)
-                        await m.edit(embed=embed, components=[[Button(style=ButtonStyle.green, label='No', disabled=True),
-                                                               Button(style=ButtonStyle.red, label='Yes do it', disabled=True)]])
-                        await action.blind()
-
-                    elif response.component.label == 'No':
-                        embed = discord.Embed(description=f"Mission Aborted. lucky {member.mention}", color=0x08FF08)
-                        await m.edit(embed=embed, components=[[Button(style=ButtonStyle.green, label='No', disabled=True),
-                                                               Button(style=ButtonStyle.red, label='Yes do it', disabled=True)]])
-
-                except asyncio.TimeoutError:
-                    embed = discord.Embed(description='Time\'s up, you got only 30 secs', color=0xF2A2C0)
-                    await m.edit(embed=embed, components=[[Button(style=ButtonStyle.green, label='No', disabled=True),
-                                                           Button(style=ButtonStyle.red, label='Yes do it', disabled=True)]])
-                return
+                embed = discord.Embed(title='Are you sure that you wanna do this?',
+                                      description=f"{member.mention} will not be able to see any channels in this server for 5 mins.", color=0xF2A2C0)
+                await ctx.respond(embed=embed, view=MyView(action))
 
             elif member_is > 300:
                 embed = discord.Embed(title='Nah',
@@ -468,11 +453,7 @@ class Femdom(commands.Cog):
                     description=f"{member.mention} should have any of the following roles \n{self.list_roles(database.get_config('domme', member.guild.id))}\n{self.list_roles(database.get_config('slave', member.guild.id))}",
                     color=0xF2A2C0)
 
-            elif member_is == 0:  # when the author doesn't have domme or slave role.
-                embed = discord.Embed(
-                    description=f"{ctx.author.mention}, you should have any of the following roles \n{self.list_roles(database.get_config('domme', member.guild.id))}\n{self.list_roles(database.get_config('slave', member.guild.id))}",
-                    color=0xF2A2C0)
-
+           
             elif member_is == -1:  # when member is bot banned
                 embed = discord.Embed(title='Bot ban',
                                       description=f"{member.mention} is banned from using {self.bot.user.mention}",
@@ -481,43 +462,14 @@ class Femdom(commands.Cog):
                 embed = discord.Embed(title='Bot ban',
                                       description=f"{ctx.author.mention} you are banned from using {self.bot.user.mention} till <t:{member_is * -1}:F>",
                                       color=0xF2A2C0)
+                
+            
+            embed = discord.Embed(title='Are you sure that you wanna do this?',
+                                      description=f"{member.mention} will not be able to see any channels in this server for 5 mins.", color=0xF2A2C0)
+            await ctx.respond(embed=embed, view=MyView(action))
 
-            await action.react('n')
-            await ctx.send(embed=embed)
-
-    ##############################################################################
-    #                                                                            #
-    #                                                                            #
-    #                                 ERRORS                                     #
-    #                                                                            #
-    #                                                                            #
-    ##############################################################################
-
-    @chastity.error
-    async def on_chastity_error(self, ctx, error):
-        if isinstance(error, commands.MissingRequiredArgument) or isinstance(error, commands.BadArgument) or isinstance(error, commands.MemberNotFound):
-            embed = discord.Embed(description=f"Usage:\n**`t.chastity @mention`**",
-                                  color=0xFF2030)
-            await ctx.send(embed=embed)
-
-    @muffs.error
-    async def on_muff_error(self, ctx, error):
-        if isinstance(error, commands.MissingRequiredArgument) or isinstance(error, commands.BadArgument) or isinstance(error, commands.MemberNotFound):
-            embed = discord.Embed(description=f"Usage:\n**`t.muffs @mention`**",
-                                  color=0xFF2030)
-            await ctx.send(embed=embed)
-
-    @blind.error
-    async def on_blind_error(self, ctx, error):
-        if isinstance(error, commands.MissingRequiredArgument) or isinstance(error, commands.BadArgument) or isinstance(error, commands.MemberNotFound):
-            embed = discord.Embed(description=f"Usage:\n> **`t.blind @mention`** ",
-                                  color=0xFF2030)
-        elif isinstance(error, commands.errors.CommandOnCooldown):
-            embed = discord.Embed(title="Blindfold Cooldown is 4h",
-                                  description="{} you need to wait {:,.1f} minutes to blindfold a slave again.".format(ctx.author.mention, (error.retry_after // 60) + 1),
-                                  color=0xFF2030)
-        await ctx.send(embed=embed)
+        
 
 
 def setup(bot):
-    bot.add_cog(Femdom(bot))
+    bot.add_cog(Femdom2(bot))

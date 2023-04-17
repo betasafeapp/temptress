@@ -8,7 +8,7 @@ import unicodedata
 import emoji as emo
 from random import choice
 from discord.ext import commands
-from discord_components import *
+from pycord_components import *
 
 
 def who_is(author, member):
@@ -95,15 +95,6 @@ class Action:
         else:
             return roles
 
-    async def react(self, y_n):
-        """
-        reacts check/cross to the message
-        """
-        if y_n == 'yes' or y_n == 'y':
-            await self.ctx.message.add_reaction(emoji='yes:968277243359027221')
-        elif y_n == 'no' or y_n == 'n':
-            await self.ctx.message.add_reaction(emoji='no:968277243266756618')
-
     async def own(self):
         """
         will asks slave for consent and will add to ownership DB
@@ -115,7 +106,7 @@ class Action:
             embed = discord.Embed(title='Nah',
                                   description=f"{self.author.mention} don't be like Succs and collect subs like pokemon",
                                   color=0xF2A2C0)
-            await self.ctx.send(embed=embed)
+            await self.ctx.respond(embed=embed)
         else:
             try:
                 embed = discord.Embed(title='A new beginning!',
@@ -123,7 +114,7 @@ class Action:
                                                 f"Do you consent to do anything to make the domme happy and do everything she commands you to?",
                                     color=0xF2A2C0)
 
-                m = await self.ctx.channel.send(embed=embed, components=[[Button(style=ButtonStyle.blue, label="Yes, I will be your toy"),
+                m = await self.ctx.channel.respond(embed=embed, components=[[Button(style=ButtonStyle.blue, label="Yes, I will be your toy"),
                                                                           Button(style=ButtonStyle.red, label="No, I am dumb")]])
                 response = await self.bot.wait_for('button_click', timeout=60, check=check)
                 await m.delete()
@@ -133,20 +124,20 @@ class Action:
                     yes_embed = discord.Embed(title=f'Congratulations!',
                                               description=f'{self.author.mention} has tied a leash on {self.member.mention} and now she has a new pet!',
                                               color=0xF2A2C0)
-                    await self.ctx.channel.send(embed=yes_embed)
+                    await self.ctx.channel.respond(embed=yes_embed)
                 else:
                     no_embed = discord.Embed(title=f'What a catastrophe!',
                                              description=f'{self.member.mention} refused to be owned by {self.author.mention} How dare you!! Someone '
                                                         f'better hide!!!',
                                              color=0xFF2030)
-                    await self.ctx.channel.send(embed=no_embed)
+                    await self.ctx.channel.respond(embed=no_embed)
             except asyncio.TimeoutError:
                 await m.delete()
                 timeout_embed = discord.Embed(title=f'Time\'s Up!',
                                               description=f"You were too slow to consent the ownership request by {self.author.mention}.\nNow beg for another chance, "
                                                         f"{self.member.mention}! And better pray that she will request again.",
                                               color=0xF2A2C0)
-                await self.ctx.channel.send(embed=timeout_embed)
+                await self.ctx.channel.respond(embed=timeout_embed)
 
     async def disown(self):
         """
@@ -157,7 +148,7 @@ class Action:
                                      description=f'The {self.author.mention} has decided to set you free, {self.member.mention}; '
                                                  f'therefore, your shared journey has come to an end. Hope you both had fun, but it is now time to part ways',
                                      color=0xF2A2C0)
-        await self.ctx.channel.send(embed=disown_embed)
+        await self.ctx.channel.respond(embed=disown_embed)
         await self.react('y')
 
     async def gag(self, type, message, temp=False):
@@ -217,7 +208,7 @@ class Action:
         if len(old_badword_list) >= 50:  # ignores the badwords if the member meets the limit '50'
             embed = discord.Embed(description=f"{self.member.mention}'s badwords reached it's limit. Better lock this slut.",
                                   color=0xF2A2C0)
-            await self.ctx.send(embed=embed)
+            await self.ctx.respond(embed=embed)
             await self.react('n')
         else:
             for badword in badword_list:
@@ -230,7 +221,7 @@ class Action:
             badword_added_embed = discord.Embed(title="More punishments!",
                                                 description=f"{self.author.mention} added a new badword to {self.member.mention}, \"{','.join(badword_list)}\"",
                                                 colour=0xF2A2C0)
-            await self.ctx.channel.send(embed=badword_added_embed)
+            await self.ctx.channel.respond(embed=badword_added_embed)
             await self.react('y')
 
     async def remove_badword(self, badword_list):
@@ -242,7 +233,7 @@ class Action:
         badword_remove_embed = discord.Embed(title="Lucky slave!",
                                              description=f"{self.author.mention} had sympathy for you and removed your bad words \"{','.join(badword_list)}\", {self.member.mention}. Better be grateful! ",
                                              colour=0xF2A2C0)
-        await self.ctx.channel.send(embed=badword_remove_embed)
+        await self.ctx.channel.respond(embed=badword_remove_embed)
         await self.react('y')
 
     async def clear_badword(self):
@@ -253,7 +244,7 @@ class Action:
         badword_clear_embed = discord.Embed(title="Lucky slave!",
                                             description=f"{self.author.mention} had sympathy for you and removed all your badwords, {self.member.mention}. Better be grateful! ",
                                             colour=0xF2A2C0)
-        await self.ctx.channel.send(embed=badword_clear_embed)
+        await self.ctx.channel.respond(embed=badword_clear_embed)
         await self.react('y')
 
     async def nickname(self, name):
@@ -276,20 +267,20 @@ class Action:
                     else:
                         name_embed = discord.Embed(description=f"name of {self.member.mention} is removed",
                                                 color=0x08FF08)
-                    await self.ctx.channel.send(embed=name_embed)
+                    await self.ctx.channel.respond(embed=name_embed)
                     await self.react('y')
                 else:
                     no_power_embed = discord.Embed(description=f'{self.member.mention} have higher role than me <:cry:968287446217400320>',
                                                    color=0xFF2030)
-                    await self.ctx.send(embed=no_power_embed)
+                    await self.ctx.respond(embed=no_power_embed)
             else:
                 no_power_embed = discord.Embed(description=f'I don\'t have administrator permission in the server <:cry:968287446217400320>',
                                                color=0xFF2030)
-                await self.ctx.send(embed=no_power_embed)
+                await self.ctx.respond(embed=no_power_embed)
         else:
             no_power_embed = discord.Embed(description=f'{self.member.mention} in the server owner I don\'t have permission to change nickname <:cry:968287446217400320>',
                                            color=0xFF2030)
-            await self.ctx.send(embed=no_power_embed)
+            await self.ctx.respond(embed=no_power_embed)
 
     async def rank(self, num):
         """
@@ -301,13 +292,13 @@ class Action:
                 database.set_slave_rank(self.member.id, 1000, self.member.guild.id)
                 embed = discord.Embed(description=f"Rank of {self.member.mention} is removed",
                                       colour=0xF2A2C0)
-                await self.ctx.channel.send(embed=embed)
+                await self.ctx.channel.respond(embed=embed)
                 await self.react('y')
             else:
                 database.set_slave_rank(self.member.id, num, self.member.guild.id)
                 embed = discord.Embed(description=f"{self.member.mention} is on rank **{num}** of {self.author.mention}\'s favorite Subs",
                                       colour=0xF2A2C0)
-                await self.ctx.channel.send(embed=embed)
+                await self.ctx.channel.respond(embed=embed)
                 await self.react('y')
         else:
             embed = discord.Embed(description=f"you only own {len(slave_list)} Subs, Please choice a number between `0-{len(slave_list)}` \n**0** to remove the rank from the mentioned slave.",
@@ -348,8 +339,7 @@ class Action:
             embed = discord.Embed(title="Fun is over…",
                                   description=f"{self.author.mention}, untied her slave now {self.member.mention} is free, (i hope your body has marks of bondage)",
                                   colour=0xF2A2C0)
-        await self.ctx.channel.send(embed=embed)
-        await self.react('y')
+        await self.ctx.channel.respond(embed=embed)
 
     async def status(self):
         """
@@ -363,7 +353,7 @@ class Action:
                                   description=f"{member.mention} is banned from using {self.bot.user.mention} till <t:{ban_data[1]}:F>",
                                   color=0xF2A2C0)
             embed.set_thumbnail(url=member.avatar_url)
-            await self.ctx.send(embed=embed)
+            await self.ctx.respond(embed=embed)
             return
         
         if set(database.get_config('slave', member.guild.id)) & set([role.id for role in member.roles]):  # slave status
@@ -473,7 +463,7 @@ class Action:
                                       description=f"You need any of the following roles:\n{self.list_roles(database.get_config('domme', member.guild.id))}\n{self.list_roles(database.get_config('slave', member.guild.id))}",
                                       color=0xF2A2C0)
 
-        await self.ctx.channel.send(embed=embed)
+        await self.ctx.channel.respond(embed=embed)
 
     async def leaderboard(self, type='line'):
         """
@@ -503,7 +493,7 @@ class Action:
                 return embed
 
             embed = page(data, 1, size)
-            box = await self.ctx.channel.send(embed=embed)
+            box = await self.ctx.channel.respond(embed=embed)
             await box.add_reaction('⏪')
             await box.add_reaction('⏩')
             while True:
@@ -543,7 +533,7 @@ class Action:
                 return embed
 
             embed = page(data, 1, size)
-            box = await self.ctx.channel.send(embed=embed)
+            box = await self.ctx.channel.respond(embed=embed)
             await box.add_reaction('⏪')
             await box.add_reaction('⏩')
             while True:
@@ -583,7 +573,7 @@ class Action:
                 return embed
 
             embed = page(data, 1, size)
-            box = await self.ctx.channel.send(embed=embed)
+            box = await self.ctx.channel.respond(embed=embed)
             await box.add_reaction('⏪')
             await box.add_reaction('⏩')
             while True:
@@ -623,9 +613,9 @@ class Punishment:
         self.tiechannelid = slaveDB[0][3]
         self.is_emoji = slaveDB[0][4]
 
-    async def send_webhook(self, avatar_url, message, name, channel):
+    async def respond_webhook(self, avatar_url, message, name, channel):
         """
-        this function makes webhook and send messages
+        this function makes webhook and respond messages
         """
         hooks = await channel.webhooks()
         if not hooks or 'temptress' not in [hook.name for hook in hooks]:
@@ -645,7 +635,7 @@ class Punishment:
 
     async def gag(self):
         """
-        this function deletes the message if the member is gagged and calls send_webhook() to replace the message..
+        this function deletes the message if the member is gagged and calls respond_webhook() to replace the message..
         """
         if self.is_gag == 'off':
             return
@@ -655,23 +645,23 @@ class Punishment:
             kitty_text = [' meow', ' mew', ' mrow', ' mrrroww', ' prrr', ' purr', 'maiu']
             for _ in range(int(len(self.message.content) / 7) + 1):
                 message = message + choice(kitty_text)
-            await self.send_webhook(self.avatar_url, message, '🐱' + self.name, self.channel)
+            await self.respond_webhook(self.avatar_url, message, '🐱' + self.name, self.channel)
         elif self.is_gag == 'puppy':
             puppy_text = ['ah uh ah uh', 'ar rooff ', ' arf', ' bow-wow', ' ruff', ' ruh-roh', ' woof', 'hu hu hu hu',
                           'raow', 'rrowff', 'auf']
             for _ in range(int(len(self.message.content) / 7) + 1):
                 message = message + choice(puppy_text)
-            await self.send_webhook(self.avatar_url, message, '🐶' + self.name, self.channel)
+            await self.respond_webhook(self.avatar_url, message, '🐶' + self.name, self.channel)
         elif self.is_gag == 'cow':
             cow_text = ['Mooo...', 'Moo low ', ' Mooooooo', ' mo mo mooooo', ' ....Mooo', ' MMoooooo']
             for _ in range(int(len(self.message.content) / 7) + 1):
                 message = message + choice(cow_text)
-            await self.send_webhook(self.avatar_url, message, '🐮' + self.name, self.channel)
+            await self.respond_webhook(self.avatar_url, message, '🐮' + self.name, self.channel)
         elif self.is_gag == 'pig':
             pig_text = ['oink..oink', 'ooink...', ' snort...oink', ' snort-oink', ' squeal', ' squeal-oink', ' grunt-oink', 'oink..squeal',]
             for _ in range(int(len(self.message.content) / 7) + 1):
                 message = message + choice(pig_text)
-            await self.send_webhook(self.avatar_url, message, '🐷' + self.name, self.channel)
+            await self.respond_webhook(self.avatar_url, message, '🐷' + self.name, self.channel)
 
     async def is_badword(self):        
         """
@@ -687,10 +677,10 @@ class Punishment:
                 embed = discord.Embed(title='Gag the brats',
                                       description=f"{self.author.mention} you are gagged till your owner ungags you.",
                                       color=0xF2A2C0)
-                await self.channel.send(embed=embed)
+                await self.channel.respond(embed=embed)
                 owner = self.author.guild.get_member(database.get_owner(self.author.id, self.author.guild.id))
                 if owner is not None:
-                    await owner.send(f"{self.author.mention} is gagged in the server **{self.author.guild.name}** because of our policy **Gag the brats** ")
+                    await owner.respond(f"{self.author.mention} is gagged in the server **{self.author.guild.name}** because of our policy **Gag the brats** ")
                 else:
                     await asyncio.sleep(30 * 60)
                     database.update_slaveDB(self.author.id, 'gag', 'off', self.author.guild.id)
@@ -700,7 +690,7 @@ class Punishment:
                                     description=f"{self.mention} can't say that word little one! Better watch that mouth!, you lost 1 life."
                                     f"\n\n\n**life**\n> {'<:fullheart:968298305178202205>'*(life - 1)}{'<:emptyheart:968298304855224403>'*(11 - life)}",
                                     colour=0xF2A2C0)
-                await self.channel.send(embed=embed, delete_after=5)
+                await self.channel.respond(embed=embed, delete_after=5)
 
     async def is_tiechannel(self):
         """
@@ -709,10 +699,10 @@ class Punishment:
         if self.tiechannelid == 0 or self.channel.id == self.tiechannelid:
             return
         await self.message.delete()
-        await self.author.send(
-            f"you are tied to <#{self.tiechannelid}> you can't send messages in <#{self.channel.id}>")
+        await self.author.respond(
+            f"you are tied to <#{self.tiechannelid}> you can't respond messages in <#{self.channel.id}>")
         message = f"I am tied in <#{self.tiechannelid}>"
-        await self.send_webhook(self.avatar_url, message, self.name, self.channel)
+        await self.respond_webhook(self.avatar_url, message, self.name, self.channel)
 
     async def emoji_delete(self):
         """
@@ -733,7 +723,7 @@ class Punishment:
             return
         else:
             await self.message.delete()
-            m = await self.channel.send(f"{self.mention} you don't have permission to use emojis")
+            m = await self.channel.respond(f"{self.mention} you don't have permission to use emojis")
             await asyncio.sleep(5)
             await m.delete()
 
@@ -741,7 +731,7 @@ class Punishment:
 class Femdom(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        DiscordComponents(bot)
+        PycordComponents(bot)
 
     def list_roles(self, roles):
         if isinstance(roles, list):
@@ -782,9 +772,10 @@ class Femdom(commands.Cog):
         """
         database.remove_member(member.id, member.guild.id)
 
-    @commands.command(aliases=['leash', 'claim'])
-    @commands.guild_only()
+    @discord.slash_command(description="own a member")
     async def own(self, ctx, member: discord.Member):
+        embed = discord.Embed(color=0xF2A2C0)
+
         if ctx.author.bot:  # if the author is a bot.
             return
 
@@ -792,7 +783,7 @@ class Femdom(commands.Cog):
             embed = discord.Embed(title='I am not ready yet.',
                                   description=f"Ask the Admins to run the command **`t.setup`** and try again",
                                   color=0xF2A2C0)
-            await ctx.send(embed=embed)
+            await ctx.respond(embed=embed)
             return
     
         if member.id == self.bot.user.id:  # Temptress ID, owning Temptress
@@ -800,11 +791,11 @@ class Femdom(commands.Cog):
                                               f" I know it is tempting to spank and choke me at the same time but I am"
                                               f" {self.bot.user.name}, this bitch is not for sale, sorry! <:cya:968277440516489246>",
                                   color=0xF2A2C0)
-            await ctx.send(embed=embed)
+            await ctx.respond(embed=embed)
 
         elif member.bot:  # owning a random bot
             embed = discord.Embed(description=f"{member.mention} is too strong for you to own!", color=0xF2A2C0)
-            await ctx.send(embed=embed)
+            await ctx.respond(embed=embed)
 
         else:
             action = Action(self.bot, ctx, member)
@@ -873,11 +864,10 @@ class Femdom(commands.Cog):
             elif member_is == 201:  # when domme owning a free slave
                 await action.own()
                 return
-            await action.react('n')
-            await ctx.send(embed=embed)
+           
+            await ctx.respond(embed=embed)
 
-    @commands.command(aliases=['release'])
-    @commands.guild_only()
+    @discord.slash_command(description='Disown a member')
     async def disown(self, ctx, member: discord.Member):
         if ctx.author.bot:  # when author is a bot.
             return
@@ -886,18 +876,18 @@ class Femdom(commands.Cog):
             embed = discord.Embed(title='I am not ready yet.',
                                   description=f"Ask the Admins to run the command **`t.setup`** and try again",
                                   color=0xF2A2C0)
-            await ctx.send(embed=embed)
+            await ctx.respond(embed=embed)
             return
 
         if member.id == self.bot.user.id:  # Temptress ID, owning Temptress
             embed = discord.Embed(description=f"<:cry:968287446217400320> why are you trying to disown me, am I not a good girl.",
                                   color=0xF2A2C0)
-            await ctx.send(embed=embed)
+            await ctx.respond(embed=embed)
 
         elif member.bot:  # when mentioning a random bot.
             embed = discord.Embed(description=f"{member.mention} is a bot not your slut to disown!",
                                   color=0xF2A2C0)
-            await ctx.send(embed=embed)
+            await ctx.respond(embed=embed)
 
         else:
             action = Action(self.bot, ctx, member)
@@ -965,10 +955,9 @@ class Femdom(commands.Cog):
                                       description=f"{ctx.author.mention} you are banned from using {self.bot.user.mention} till <t:{member_is * -1}:F>",
                                       color=0xF2A2C0)
             await action.react('n')
-            await ctx.send(embed=embed)
+            await ctx.respond(embed=embed)
 
-    @commands.command()
-    @commands.guild_only()
+    @discord.slash_command(description='Gag a member')
     async def gag(self, ctx, member: discord.Member):
         if ctx.author.bot:  # when author is a bot.
             return
@@ -977,18 +966,18 @@ class Femdom(commands.Cog):
             embed = discord.Embed(title='I am not ready yet.',
                                   description=f"Ask the Admins to run the command **`t.setup`** and try again",
                                   color=0xF2A2C0)
-            await ctx.send(embed=embed)
+            await ctx.respond(embed=embed)
             return
 
         if member.id == self.bot.user.id:  # temptress ID, trying to kitty gag temptress.
             embed = discord.Embed(description=f"Pff.. are you dumb, Ahahaha!!",
                                   color=0xF2A2C0)
-            await ctx.send(embed=embed)
+            await ctx.respond(embed=embed)
 
         elif member.bot:  # when mentioning a random bot
             embed = discord.Embed(description=f"{member.mention} is a bot not your slut!",
                                   color=0xF2A2C0)
-            await ctx.send(embed=embed)
+            await ctx.respond(embed=embed)
 
         else:
             action = Action(self.bot, ctx, member)
@@ -1108,11 +1097,10 @@ class Femdom(commands.Cog):
                                       color=0xF2A2C0)
 
             await action.react('n')
-            await ctx.send(embed=embed)
+            await ctx.respond(embed=embed)
 
-    @commands.command(aliases=['word', 'addbadword', 'words', 'badwords', 'addbadwords'])
-    @commands.guild_only()
-    async def badword(self, ctx, member: discord.Member, *, words):
+    @discord.slash_command(description='Add a bad word to the list of words that will be used to punish the slave')
+    async def badword(self, ctx, member: discord.Member, *, words: str):
         if ctx.author.bot:  # when author is a bot
             return
         
@@ -1120,13 +1108,13 @@ class Femdom(commands.Cog):
             embed = discord.Embed(title='I am not ready yet.',
                                   description=f"Ask the Admins to run the command **`t.setup`** and try again",
                                   color=0xF2A2C0)
-            await ctx.send(embed=embed)
+            await ctx.respond(embed=embed)
             return
 
         elif member.bot:  # when mentioned user is a bot
             embed = discord.Embed(description=f"{member.mention} is a bot not a Pathetic Slut!",
                                   color=0xF2A2C0)
-            await ctx.send(embed=embed)
+            await ctx.respond(embed=embed)
 
         else:
             action = Action(self.bot, ctx, member)
@@ -1198,10 +1186,9 @@ class Femdom(commands.Cog):
                                       color=0xF2A2C0)
 
             await action.react('n')
-            await ctx.send(embed=embed)
+            await ctx.respond(embed=embed)
 
-    @commands.command(aliases=['removeword'])
-    @commands.guild_only()
+    @discord.slash_command(description='Remove badword from a slave')
     async def removebadword(self, ctx, member: discord.Member, *, words):
         if ctx.author.bot:  # when author is a bot
             return
@@ -1210,13 +1197,13 @@ class Femdom(commands.Cog):
             embed = discord.Embed(title='I am not ready yet.',
                                   description=f"Ask the Admins to run the command **`t.setup`** and try again",
                                   color=0xF2A2C0)
-            await ctx.send(embed=embed)
+            await ctx.respond(embed=embed)
             return
 
         elif member.bot:  # when mentioned member is bot
             embed = discord.Embed(description=f"{member.mention} is a bot not a Person!",
                                   color=0xF2A2C0)
-            await ctx.send(embed=embed)
+            await ctx.respond(embed=embed)
         else:
             action = Action(self.bot, ctx, member)
             member_is = who_is(ctx.author, member)
@@ -1279,10 +1266,9 @@ class Femdom(commands.Cog):
                                       color=0xF2A2C0)
 
             await action.react('n')
-            await ctx.send(embed=embed)
+            await ctx.respond(embed=embed)
 
-    @commands.command(aliases=['removeallbadwords', 'clearwords', 'removeallwords'])
-    @commands.guild_only()
+    @discord.slash_command(description='Clear all badwords from a slave')
     async def clearbadword(self, ctx, member: discord.Member):
         if ctx.author.bot:  # when author is a bot
             return
@@ -1291,13 +1277,13 @@ class Femdom(commands.Cog):
             embed = discord.Embed(title='I am not ready yet.',
                                   description=f"Ask the Admins to run the command **`t.setup`** and try again",
                                   color=0xF2A2C0)
-            await ctx.send(embed=embed)
+            await ctx.respond(embed=embed)
             return
 
         elif member.bot:  # when mentioned member is a bot
             embed = discord.Embed(description=f"{member.mention} is a bot not a Person!",
                                   color=0xF2A2C0)
-            await ctx.send(embed=embed)
+            await ctx.respond(embed=embed)
 
         else:
             action = Action(self.bot, ctx, member)
@@ -1358,10 +1344,9 @@ class Femdom(commands.Cog):
                                       color=0xF2A2C0)
 
             await action.react('n')
-            await ctx.send(embed=embed)
+            await ctx.respond(embed=embed)
 
-    @commands.command(aliases=['name', 'nick', 'clearname', 'clearnick', 'removename', 'removenick'])
-    @commands.guild_only()
+    @discord.slash_command(description='Nickname a slave')
     async def nickname(self, ctx, member: discord.Member, *, name=''):
         if ctx.author.bot:  # when author is a bot
             return
@@ -1370,13 +1355,13 @@ class Femdom(commands.Cog):
             embed = discord.Embed(title='I am not ready yet.',
                                   description=f"Ask the Admins to run the command **`t.setup`** and try again",
                                   color=0xF2A2C0)
-            await ctx.send(embed=embed)
+            await ctx.respond(embed=embed)
             return
 
         elif member.bot:  # when mentioned member is bot
             embed = discord.Embed(description=f"{member.mention} is a bot not a Person!",
                                   color=0xF2A2C0)
-            await ctx.send(embed=embed)
+            await ctx.respond(embed=embed)
 
         else:
             action = Action(self.bot, ctx, member)
@@ -1434,10 +1419,9 @@ class Femdom(commands.Cog):
                                       color=0xF2A2C0)
 
             await action.react('n')
-            await ctx.send(embed=embed)
+            await ctx.respond(embed=embed)
 
-    @commands.command()
-    @commands.guild_only()
+    @discord.slash_command(description='Status')
     async def status(self, ctx, member: discord.Member = None):
         member = member or ctx.author
         action = Action(self.bot, ctx, member)
@@ -1448,7 +1432,7 @@ class Femdom(commands.Cog):
             embed = discord.Embed(title='I am not ready yet.',
                                   description=f"Ask the Admins to run the command **`t.setup`** and try again",
                                   color=0xF2A2C0)
-            await ctx.send(embed=embed)
+            await ctx.respond(embed=embed)
             return
         
         elif member.bot:
@@ -1463,10 +1447,9 @@ class Femdom(commands.Cog):
         else:
             await action.status()
             return
-        await ctx.channel.send(embed=embed)
+        await ctx.channel.respond(embed=embed)
 
-    @commands.command(aliases=['emoji'])
-    @commands.guild_only()
+    @discord.slash_command(description='Emojii')
     async def emojii(self, ctx, member: discord.Member):
         if ctx.author.bot:  # when author is a bot
             return
@@ -1475,13 +1458,13 @@ class Femdom(commands.Cog):
             embed = discord.Embed(title='I am not ready yet.',
                                   description=f"Ask the Admins to run the command **`t.setup`** and try again",
                                   color=0xF2A2C0)
-            await ctx.send(embed=embed)
+            await ctx.respond(embed=embed)
             return
 
         elif member.bot:  # when mention a ramdom bot
             embed = discord.Embed(description=f"{member.mention} is a bot not a Person!",
                                   color=0xF2A2C0)
-            await ctx.send(embed=embed)
+            await ctx.respond(embed=embed)
 
         else:
             action = Action(self.bot, ctx, member)
@@ -1584,10 +1567,9 @@ class Femdom(commands.Cog):
                                       color=0xF2A2C0)
 
             await action.react('n')
-            await ctx.send(embed=embed)
+            await ctx.respond(embed=embed)
 
-    @commands.command()
-    @commands.guild_only()
+    @discord.slash_command(description='Tie a slave to a channel')
     async def tie(self, ctx, member: discord.Member, channel: discord.TextChannel = None):
         if ctx.author.bot:  # when author is a bot
             return
@@ -1596,13 +1578,13 @@ class Femdom(commands.Cog):
             embed = discord.Embed(title='I am not ready yet.',
                                   description=f"Ask the Admins to run the command **`t.setup`** and try again",
                                   color=0xF2A2C0)
-            await ctx.send(embed=embed)
+            await ctx.respond(embed=embed)
             return
 
         elif member.bot:  # when mention a ramdom bot
             embed = discord.Embed(description=f"{member.mention} is a bot not a slut!",
                                   color=0xF2A2C0)
-            await ctx.send(embed=embed)
+            await ctx.respond(embed=embed)
 
         else:
             action = Action(self.bot, ctx, member)
@@ -1668,10 +1650,9 @@ class Femdom(commands.Cog):
                                       color=0xF2A2C0)
 
             await action.react('n')
-            await ctx.send(embed=embed)
+            await ctx.respond(embed=embed)
 
-    @commands.command()
-    @commands.guild_only()
+    @discord.slash_command(description='Untie a slave from a channel')
     async def untie(self, ctx, member: discord.Member):
         if ctx.author.bot:  # when author is a bot
             return
@@ -1680,13 +1661,13 @@ class Femdom(commands.Cog):
             embed = discord.Embed(title='I am not ready yet.',
                                   description=f"Ask the Admins to run the command **`t.setup`** and try again",
                                   color=0xF2A2C0)
-            await ctx.send(embed=embed)
+            await ctx.respond(embed=embed)
             return
 
         elif member.bot:  # when mention a ramdom bot
             embed = discord.Embed(description=f"{member.mention} is a bot not a slut!",
                                   color=0xF2A2C0)
-            await ctx.send(embed=embed)
+            await ctx.respond(embed=embed)
 
         else:
             action = Action(self.bot, ctx, member)
@@ -1750,10 +1731,9 @@ class Femdom(commands.Cog):
                                       color=0xF2A2C0)
 
             await action.react('n')
-            await ctx.send(embed=embed)
+            await ctx.respond(embed=embed)
 
-    @commands.command()
-    @commands.guild_only()
+    @discord.slash_command(description='Rank a slave')
     async def rank(self, ctx, member: discord.Member, num: int = 0):
         action = Action(self.bot, ctx, member)
         if ctx.author.bot:  # when author is a bot
@@ -1763,7 +1743,7 @@ class Femdom(commands.Cog):
             embed = discord.Embed(title='I am not ready yet.',
                                   description=f"Ask the Admins to run the command **`t.setup`** and try again",
                                   color=0xF2A2C0)
-            await ctx.send(embed=embed)
+            await ctx.respond(embed=embed)
             return
         
         elif member.bot:  # when mentioned member is a bot.
@@ -1801,10 +1781,9 @@ class Femdom(commands.Cog):
                                       color=0xF2A2C0)
 
         await action.react('n')
-        await ctx.channel.send(embed=embed)
+        await ctx.channel.respond(embed=embed)
 
-    @commands.command(aliases=['lb'])
-    @commands.guild_only()
+    @discord.slash_command(description='Leaderboard')
     async def leaderboard(self, ctx, lb_type='cash'):
         if ctx.author.bot:  # when author is a bot.
             return
@@ -1813,113 +1792,18 @@ class Femdom(commands.Cog):
             embed = discord.Embed(title='I am not ready yet.',
                                   description=f"Ask the Admins to run the command **`t.setup`** and try again",
                                   color=0xF2A2C0)
-            await ctx.send(embed=embed)
+            await ctx.respond(embed=embed)
             return
 
         if lb_type.lower() not in ['cash', 'line', 'chess']:
             embed = discord.Embed(tite="wrong options", description="I got only few options\n> **`t.lb cash`**\n> **`t.lb line`**\n> **`t.lb chess`**", color=0xFF2030)
-            await ctx.channel.send(embed=embed)
+            await ctx.channel.respond(embed=embed)
             return
 
         action = Action(self.bot, ctx, ctx.author)
         await action.leaderboard(type=lb_type)
 
-    ##############################################################################
-    #                                                                            #
-    #                                                                            #
-    #                                 ERRORS                                     #
-    #                                                                            #
-    #                                                                            #
-    ##############################################################################
-
-    @own.error
-    async def on_own_error(self, ctx, error):
-        if isinstance(error, commands.MissingRequiredArgument) or isinstance(error, commands.BadArgument) or isinstance(error, commands.MemberNotFound):
-            embed = discord.Embed(description=f"Usage:\n**`t.own @mention`**",
-                                  color=0xFF2030)
-            await ctx.send(embed=embed)
-
-    @disown.error
-    async def on_disown_error(self, ctx, error):
-        if isinstance(error, commands.MissingRequiredArgument) or isinstance(error, commands.BadArgument) or isinstance(error, commands.MemberNotFound):
-            embed = discord.Embed(description=f"Usage:\n**`t.disown @mention`**",
-                                  color=0xFF2030)
-            await ctx.send(embed=embed)
-
-    @gag.error
-    async def on_gag_error(self, ctx, error):
-        if isinstance(error, commands.MissingRequiredArgument) or isinstance(error, commands.BadArgument) or isinstance(error, commands.MemberNotFound):
-            embed = discord.Embed(description=f"Usage:\n**`t.gag @mention`**",
-                                  color=0xFF2030)
-            await ctx.send(embed=embed)
-
-    @badword.error
-    async def on_badword_error(self, ctx, error):
-        if isinstance(error, commands.MissingRequiredArgument) or isinstance(error, commands.BadArgument) or isinstance(error, commands.MemberNotFound):
-            embed = discord.Embed(description=f"Usage:\n**`t.badword @mention <bad words>`**"
-                                              f"\n> aliases = `word`, `addbadword`, `words`, `badwords`, `addbadwords`",
-                                  color=0xFF2030)
-            await ctx.send(embed=embed)
-
-    @removebadword.error
-    async def on_removebadword_error(self, ctx, error):
-        if isinstance(error, commands.MissingRequiredArgument) or isinstance(error, commands.BadArgument) or isinstance(error, commands.MemberNotFound):
-            embed = discord.Embed(description=f"Usage:\n**`t.removebadword @mention <bad words>`**"
-                                              f"\n> aliases = `removeword`",
-                                  color=0xFF2030)
-            await ctx.send(embed=embed)
-
-    @clearbadword.error
-    async def on_clearbadword_error(self, ctx, error):
-        if isinstance(error, commands.MissingRequiredArgument) or isinstance(error, commands.BadArgument) or isinstance(error, commands.MemberNotFound):
-            embed = discord.Embed(description=f"Usage:\n**`t.clearbadword @mention`**"
-                                              f"\n> aliases = `removeallbadwords`, `clearwords`, `removeallwords`",
-                                  color=0xFF2030)
-            await ctx.send(embed=embed)
-
-    @nickname.error
-    async def on_nickname_error(self, ctx, error):
-        if isinstance(error, commands.MissingRequiredArgument) or isinstance(error, commands.BadArgument) or isinstance(error, commands.MemberNotFound):
-            embed = discord.Embed(description=f"Usage:\n**`t.nickname @mention <name>`**"
-                                              f"\n> aliases = `name`, `nick`",
-                                  color=0xFF2030)
-            await ctx.send(embed=embed)
-
-    @status.error
-    async def on_status_error(self, ctx, error):
-        if isinstance(error, commands.MissingRequiredArgument) or isinstance(error, commands.BadArgument) or isinstance(error, commands.MemberNotFound):
-            embed = discord.Embed(description=f"Usage:\n**`t.status @mention`**",
-                                  color=0xFF2030)
-            await ctx.send(embed=embed)
-
-    @emojii.error
-    async def on_allowemoji_error(self, ctx, error):
-        if isinstance(error, commands.MissingRequiredArgument) or isinstance(error, commands.BadArgument) or isinstance(error, commands.MemberNotFound):
-            embed = discord.Embed(description=f"Usage:\n**`t.emoji @mention`**",
-                                  color=0xFF2030)
-            await ctx.send(embed=embed)
-
-    @tie.error
-    async def on_tie_error(self, ctx, error):
-        if isinstance(error, commands.MissingRequiredArgument) or isinstance(error, commands.BadArgument) or isinstance(error, commands.MemberNotFound):
-            embed = discord.Embed(description=f"Usage:\n**`t.tie @mention`**"
-                                              f"\nor\n**`t.tie @mention #channel`**",
-                                  color=0xFF2030)
-            await ctx.send(embed=embed)
-
-    @untie.error
-    async def on_untie_error(self, ctx, error):
-        if isinstance(error, commands.MissingRequiredArgument) or isinstance(error, commands.BadArgument) or isinstance(error, commands.MemberNotFound):
-            embed = discord.Embed(description=f"Usage:\n**`t.untie @mention`**",
-                                  color=0xFF2030)
-            await ctx.send(embed=embed)
-
-    @rank.error
-    async def on_rank_error(self, ctx, error):
-        if isinstance(error, commands.MissingRequiredArgument) or isinstance(error, commands.BadArgument) or isinstance(error, commands.MemberNotFound):
-            embed = discord.Embed(description=f"Usage:\n**`t.rank @mention X`** X is the rank of slave",
-                                  color=0xFF2030)
-            await ctx.send(embed=embed)
+    
 
 
 def setup(bot):

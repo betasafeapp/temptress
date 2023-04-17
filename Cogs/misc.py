@@ -1,21 +1,43 @@
-#!/bin/python3
 import discord
-import asyncio
+from discord.ext import commands
 import database
 import requests
-import os
-from discord.ext import commands
-from discord_components import *
+import asyncio
+
+class MyView(discord.ui.View):
+    def __init__(self, pages):
+        super().__init__(timeout=10)
+        self.pages = pages
+        self.page_no = 0
+
+    async def on_timeout(self):
+        for child in self.children:
+            child.disabled = True
+        await self.message.edit(view=self)
+
+    @discord.ui.button(label="Previous", row=0, style=discord.ButtonStyle.primary)
+    async def button_callback(self, button, interaction):
+        self.page_no = max(0, self.page_no - 1)
+        embed = self.pages[self.page_no]
+        await interaction.response.edit_message(embed=embed, view=self)
+
+    @discord.ui.button(label="Next", row=0, style=discord.ButtonStyle.primary)
+    async def second_button_callback(self, button, interaction):
+        self.page_no = min(len(self.pages) - 1, self.page_no + 1)
+        embed = self.pages[self.page_no]
+        await interaction.response.edit_message(embed=embed, view=self)
 
 
 class Misc(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        DiscordComponents(bot)        
 
-    @commands.command()
-    @commands.guild_only()
-    async def define(self, ctx, *, word):
+    @discord.slash_command(name="ping", description="Check the bot's latency")
+    async def ping(self, ctx: discord.ApplicationContext):
+        await ctx.respond(f"Pong! {round(self.bot.latency * 1000)}ms")
+
+    @discord.slash_command(name="define", description="Define a word")
+    async def define(self, ctx: discord.ApplicationContext, word: str):
         if ctx.author.bot:
             return
         ban_data = database.is_botban(ctx.author.id)
@@ -23,61 +45,31 @@ class Misc(commands.Cog):
             url = "https://mashape-community-urban-dictionary.p.rapidapi.com/define"
             querystring = {"term": word}
             headers = {'x-rapidapi-host': "mashape-community-urban-dictionary.p.rapidapi.com",
-                    'x-rapidapi-key': os.environ["RAPID_API"]}
-            response = requests.request("GET", url, headers=headers, params=querystring).json()['list']
+                       'x-rapidapi-key': "1d70620189msha25958ccae3cdf9p139bc7jsn68c8382e7ede"}
+            response = requests.request(
+                "GET", url, headers=headers, params=querystring).json()['list']
             if len(response) == 0:
                 embed = discord.Embed(description=f'<:cry:968287446217400320>  I can\'t find the definition of the word **`{word}`**',
                                       color=0xFF2030)
-                await ctx.send(embed=embed)
+                await ctx.respond(embed=embed)
             else:
-                def make_embed(page):
-                    embed=discord.Embed(description=f"{response[page]['definition']}\n\nExample:\n> {response[page]['example']}\n\nVotes:\n> <a:upvote:968292752813068298> {response[page]['thumbs_up']}              <a:downvote:968293083982729247> {response[page]['thumbs_down']}",
-                                        color=0xF2A2C0)
-                    embed.set_footer(text=f"{page + 1}/{len(response)}", icon_url=self.bot.user.avatar_url)
-                    embed.set_author(name=word.upper(), url=response[page]['permalink'])
-                    return embed
-                
-                page_no = 0
-                m = await ctx.send(embed=make_embed(page_no), components=[[Button(style=ButtonStyle.blue, label="Previous results", disabled=page_no==0),
-                                                                        Button(style=ButtonStyle.blue, label='Next results', disabled=page_no==len(response)-1)]])
+                pages = []
+                for i in range(0, len(response), 1):
+                    embed = discord.Embed(description=f"{response[i]['definition']}\n\nExample:\n> {response[i]['example']}\n\nVotes:\n> :arrow_double_up: {response[i]['thumbs_up']}  :arrow_double_down:  {response[i]['thumbs_down']}",
+                                          color=0xF2A2C0)
+                    embed.set_footer(
+                        text=f"{i + 1}/{len(response)}", icon_url=self.bot.user.avatar)
+                    embed.set_author(name=word.upper(),
+                                     url=response[i]['permalink'])
+                    pages.append(embed)
 
-                while True:
-                    def check(res):
-                        return ctx.author == res.user and res.channel == ctx.channel and res.message.id == m.id
-                    try:
-                        click = await self.bot.wait_for('button_click', timeout=90, check=check)
-                        await click.respond(type=6)
-                        if click.component.label == 'Next results':
-                            page_no += 1
-                            await m.edit(embed=make_embed(page_no), components=[[Button(style=ButtonStyle.blue, label="Previous results", disabled=page_no==0),
-                                                                                Button(style=ButtonStyle.blue, label='Next results', disabled=page_no==len(response)-1)]])
-                        elif click.component.label == 'Previous results':
-                            page_no -= 1
-                            await m.edit(embed=make_embed(page_no), components=[[Button(style=ButtonStyle.blue, label="Previous results", disabled=page_no==0),
-                                                                                Button(style=ButtonStyle.blue, label='Next results', disabled=page_no==len(response)-1)]])
-                    except asyncio.TimeoutError:
-                        await m.edit(embed=make_embed(page_no), components=[])
+                view = MyView(pages)
+                await ctx.respond(embed=pages[0], view=view)
+
         else:
-            embed=discord.Embed(description=f"{ctx.author.mention} you are banned from using {self.bot.user.mention} till {ban_data[1]}",
-                                color=0xF2A2C0)
-            await ctx.send(embed=embed)
+            embed = discord.Embed(description=f"{ctx.author.mention} you are banned from using {self.bot.user.mention} till {ban_data[1]}",
+                                  color=0xF2A2C0)
+            await ctx.respond(embed=embed)
 
-
-    ##############################################################################
-    
-    #                                                                            #
-    #                                                                            #
-    #                                  ERRORS                                    #
-    #                                                                            #
-    #                                                                            #
-    ##############################################################################
-    
-    @define.error
-    async def on_define_error(self, ctx, error):
-        if isinstance(error, commands.MissingRequiredArgument) or isinstance(error, commands.BadArgument):
-            embed = discord.Embed(description=f"Usage:\n> **`t.define <word>`** ",
-                                  color=0xFF2030)
-        await ctx.send(embed=embed)
-        
 def setup(bot):
     bot.add_cog(Misc(bot))
