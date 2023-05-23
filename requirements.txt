@@ -28,7 +28,7 @@ pornhubapi==0.1.0
 psycopg2==2.9.1
 pycparser==2.21
 pydantic==1.8.2
-requests==2.26.0
+requests==2.31.0
 soupsieve==2.2.1
 tinycss2==1.1.0
 typing-extensions==3.10.0.2
